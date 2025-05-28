@@ -1,4 +1,6 @@
 function enviarDatos() {
+    const origen = document.getElementById("origen").value.trim();
+    const destino = document.getElementById("destino").value.trim();
     const tempInicial = document.getElementById("tempInicial").value;
     const tempMin = document.getElementById("tempMin").value;
     const velocidad = document.getElementById("velocidad").value;
@@ -9,6 +11,8 @@ function enviarDatos() {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
+            origen: origen,
+            destino: destino,
             temperatura: tempInicial,
             minima: tempMin,
             velocidad: velocidad

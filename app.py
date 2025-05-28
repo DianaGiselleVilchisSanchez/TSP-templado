@@ -16,17 +16,16 @@ def evalua_ruta(ruta, coord):
         ciudad1 = ruta[i]
         ciudad2 = ruta[i + 1]
         total += distancia(coord[ciudad1], coord[ciudad2])
-    total += distancia(coord[ruta[-1]], coord[ruta[0]])
     return total
 
 def simulated_annealing(ruta, coord, T, T_MIN, V_enfriamiento):
     while T > T_MIN:
         dist_actual = evalua_ruta(ruta, coord)
         for _ in range(V_enfriamiento):
-            i = random.randint(0, len(ruta) - 1)
-            j = random.randint(0, len(ruta) - 1)
+            i = random.randint(1, len(ruta) - 2)  # No mover origen/destino
+            j = random.randint(1, len(ruta) - 2)
             while j == i:
-                j = random.randint(0, len(ruta) - 1)
+                j = random.randint(1, len(ruta) - 2)
 
             ruta_tmp = ruta[:]
             ruta_tmp[i], ruta_tmp[j] = ruta_tmp[j], ruta_tmp[i]
@@ -60,13 +59,30 @@ def index():
 @app.route("/optimizar", methods=["POST"])
 def optimizar():
     data = request.get_json()
+    origen = data["origen"]
+    destino = data["destino"]
     T = float(data["temperatura"])
     T_MIN = float(data["minima"])
     V_enfriamiento = int(data["velocidad"])
 
-    ruta = list(coord.keys())
-    random.shuffle(ruta)
+    if origen not in coord or destino not in coord:
+        return jsonify({"error": "Ciudad de origen o destino no válida"}), 400
+
+    # Crear lista de ciudades sin origen y destino
+    intermedias = [c for c in coord.keys() if c != origen and c != destino]
+    random.shuffle(intermedias)
+
+    ruta = [origen] + intermedias + [destino]
     ruta_optimizada = simulated_annealing(ruta, coord, T, T_MIN, V_enfriamiento)
+
+    # Asegurar que la ruta empieza en origen y termina en destino
+    if ruta_optimizada[0] != origen:
+        ruta_optimizada.remove(origen)
+        ruta_optimizada.insert(0, origen)
+    if ruta_optimizada[-1] != destino:
+        ruta_optimizada.remove(destino)
+        ruta_optimizada.append(destino)
+
     distancia_total = evalua_ruta(ruta_optimizada, coord)
 
     return jsonify({
@@ -75,6 +91,5 @@ def optimizar():
     })
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
